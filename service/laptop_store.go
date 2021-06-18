@@ -15,6 +15,7 @@ var ErrAlreadyExists = errors.New("record already exists")
 // LaptopStore 存储 laptop 的接口
 type LaptopStore interface {
 	Save(laptop *pb.Laptop) error
+	FindByID(id string) (*pb.Laptop, error)
 }
 
 // InMemoryLaptopStore 内存存储
@@ -46,4 +47,23 @@ func (store *InMemoryLaptopStore) Save(laptop *pb.Laptop) error {
 	}
 	store.data[tmp.Id] = tmp
 	return nil
+}
+
+// FindByID 根据 Id 获取 laptop
+func (store *InMemoryLaptopStore) FindByID(id string) (*pb.Laptop, error) {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	laptop := store.data[id]
+	if laptop == nil {
+		return nil, nil
+	}
+
+	tmp := &pb.Laptop{}
+	err := copier.Copy(tmp, laptop)
+	if err != nil {
+		return nil, fmt.Errorf("connot copy laptop data: %w", err)
+	}
+
+	return tmp, nil
 }

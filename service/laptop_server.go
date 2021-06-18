@@ -13,13 +13,13 @@ import (
 
 // LaptopServer 提供 laptop 服务的服务器
 type LaptopServer struct {
-	store LaptopStore
+	Store LaptopStore
 }
 
 // NewLaptopServer 创建一个 laptop 服务器
 func NewLaptopServer(stroe LaptopStore) *LaptopServer {
 	return &LaptopServer{
-		store: stroe,
+		Store: stroe,
 	}
 }
 
@@ -41,7 +41,7 @@ func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLapt
 		laptop.Id = id.String()
 	}
 
-	err := server.store.Save(laptop)
+	err := server.Store.Save(laptop)
 	if err != nil {
 		code := codes.Internal
 		if errors.Is(err, ErrAlreadyExists) {

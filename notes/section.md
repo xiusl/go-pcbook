@@ -110,10 +110,196 @@
 
 ## 编写单元测试
 
+- 在 service 中创建 `laptop_server_test.go` ，编写测试用例
+
+  ```go
+  laptopNoID := &pb.Laptop{}
+  laptopNoID.Id = ""
+  
+  laptopInvalidID := &pb.Laptop{}
+  laptopInvalidID.Id = "invalid-id"
+  
+  laptopDuplicateID := sample.NewLaptop()
+  storeDuplicateID := service.NewInMemoryLaptopStore()
+  err := storeDuplicateID.Save(laptopDuplicateID)
+  require.NoError(t, err)
+  
+  testCases := []struct {
+  		name   string
+  		laptop *pb.Laptop
+  		store  service.LaptopStore
+  		code   codes.Code
+  	}{
+  		{
+  			name:   "success_with_id",
+  			laptop: sample.NewLaptop(),
+  			store:  service.NewInMemoryLaptopStore(),
+  			code:   codes.OK,
+  		},
+  		{
+  			name:   "success_no_id",
+  			laptop: laptopNoID,
+  			store:  service.NewInMemoryLaptopStore(),
+  			code:   codes.OK,
+  		},
+  		{
+  			name:   "failure_invalid_id",
+  			laptop: laptopInvalidID,
+  			store:  service.NewInMemoryLaptopStore(),
+  			code:   codes.InvalidArgument,
+  		},
+  		{
+  			name:   "failure_duplicate_id",
+  			laptop: laptopDuplicateID,
+  			store:  storeDuplicateID,
+  			code:   codes.AlreadyExists,
+  		},
+  	}
+  ```
+
+  
+
+- 测试
+
+  ```go
+  for _, tc := range testCases {
+  		t.Run(tc.name, func(t *testing.T) {
+  
+  			req := &pb.CreateLaptopRequest{
+  				Laptop: tc.laptop,
+  			}
+  
+  			srv := service.NewLaptopServer(tc.store)
+  
+  			resp, err := srv.CreateLaptop(context.Background(), req)
+  
+  			if tc.code == codes.OK {
+  				require.NoError(t, err)
+  				require.NotNil(t, resp)
+  				fmt.Println(tc.laptop.Id)
+  				fmt.Println(resp)
+  				require.NotEmpty(t, resp.Id)
+  				if len(tc.laptop.Id) > 0 {
+  					require.Equal(t, resp.Id, tc.laptop.Id)
+  				}
+  			} else {
+  				require.Error(t, err)
+  				require.Nil(t, resp)
+  				st, ok := status.FromError(err)
+  				require.True(t, ok)
+  				require.Equal(t, tc.code, st.Code())
+  			}
+  		})
+  }
+  ```
 
 
-- s
-- 
+
+## 编写 客户端测试
+
+- 在 service 创建 `laptop_client_test.go` ，创建测试方法
+
+  ```go
+  func TestClientCreateLaptop(t *testing.T) {
+  		// ...
+  }
+  ```
+
+  
+
+- 启动一个 grpc 服务器，添加 `startTestLaptopServer` 函数，返回一个 kaotop 服务，和服务的地址
+
+  ```go
+  func startTestLaptopServer(t *testing.T)  (*service.LaptopServer, string) {
+      laptopServer := service.NewLaptopServer(service.NewInMemoryLaptopStore())
+  
+      grpcServer := grpc.NewServer()
+      pb.RegisterLaptopServicesServer(grpcServer, laptopServer)
+  
+      listen, err := net.Listen("tcp", ":0")
+      require.NoError(t, err)
+  
+      go grpcServer.Serve(listen)
+  
+      return laptopServer, listen.Addr().String()
+  }
+  ```
+
+  
+
+- 创建一个 grpc 客户端，添加 `newTestLaptopClient` 函数，根据 addr 地址，返回 `LaptopServicesClient` 对象
+
+  ```go
+  func newTestLaptopClient(t *testing.T, addr string) pb.LaptopServicesClient {
+      conn, err := grpc.Dial(addr, grpc.WithInsecure())
+      require.NoError(t, err)
+      return pb.NewLaptopServicesClient(conn)
+  }
+  ```
+
+  
+
+- 完善测试代码
+
+  ```go
+  func TestClientCreateLaptop(t *testing.T) {
+      laptopServer, serverAddr := startTestLaptopServer(t)
+      laptopClient := newTestLaptopClient(t, serverAddr)
+  
+      laptop := sample.NewLaptop()
+      expectedID := laptop.Id
+  
+      req := &pb.CreateLaptopRequest{
+        Laptop: laptop,
+      }
+  
+      resp, err := laptopClient.CreateLaptop(context.Background(), req)
+      require.NoError(t, err)
+      require.NotNil(t, resp.Id)
+      require.Equal(t, resp.Id, expectedID)
+  
+      other, err := laptopServer.Store.FindByID(expectedID)
+      require.NoError(t, err)
+      require.NotNil(t, other.Id)
+      require.Equal(t, other.Id, expectedID)
+  
+      requireSameLaptop(t, other, laptop)
+  }
+  ```
+
+  
+
+- `LaptopStore` 需要新增一个函数 `FindByID`，来验证是否存储成功，编辑 `laptop_store.go`
+
+  ```go
+  type LaptopStore interface {
+  	// ...
+  	FindByID(id string) (*pb.Laptop, error)
+  }
+  
+  func (store *InMemoryLaptopStore) FindByID(id string) (*pb.Laptop, error) {
+    //...
+  }
+  ```
+
+  
+
+- 运行测试
+
+  ```
+  Running tool: /usr/local/go/bin/go test -timeout 30s -run ^TestClientCreateLaptop$ github.com/xiusl/pcbook/service
+  
+  ok  	github.com/xiusl/pcbook/service	0.595s
+  ```
+
+  
+
 - a
-- a
+
+- asas
+
+- sda
+
+- sada
+
 - 

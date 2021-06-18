@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "/pb";
+
+package xiusl.pcbook;
+
+import "laptop_message.proto";
+
+message CreateLaptopRequest {
+    Laptop laptop = 1;
+}
+
+message CreateLaptopResponse {
+    string id = 1;
+}
+
+service LaptopServices {
+    rpc CreateLaptop(CreateLaptopRequest) returns (CreateLaptopResponse) {}
+}

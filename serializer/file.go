@@ -21,6 +21,7 @@ func WriteProtobufToJSONFile(message proto.Message, filename string) error {
 	return nil
 }
 
+// ReadProtobufFromJSONFile 从本地 json 文件读取 proto 消息
 func ReadProtobufFromJSONFile(filename string, message proto.Message) error {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -49,7 +50,7 @@ func WriteProtobufToBinaryFile(message proto.Message, filename string) error {
 	return nil
 }
 
-// ReadProtobugFromBinaryFile 从二进制文件中读取 proto 消息
+// ReadProtobufFromBinaryFile 从二进制文件中读取 proto 消息
 func ReadProtobufFromBinaryFile(filename string, message proto.Message) error {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {

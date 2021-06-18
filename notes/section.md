@@ -447,6 +447,110 @@
     > 2021/06/18 23:14:10 laptop create error: rpc error: code = InvalidArgument desc = laptap ID is not a valid UUID: invalid UUID length: 10
     ```
 
-- Todo
+## gRPC 超时和取消 
 
-- Todo
+- 修改 `cmd/client/main.go` ，对上下文增加超时时间
+
+  ```go
+  func main() {
+      // ...
+    
+      // 1 秒后将超时退出
+      ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+      defer cancel()
+  
+      res, err := laptopClient.CreateLaptop(ctx, req)
+      // ...
+  }
+  ```
+
+- 为对超时进行测试，修改 `service/laptop_server.go` ，增加耗时操作
+
+  ```go
+  // service/laptop_server.go
+  func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
+  		// ...
+    
+    	// 新增此行代码测试
+    	time.Sleep(3 * time.Second)
+  
+  		err := server.Store.Save(laptop)
+  }
+  ```
+
+- 再次运行 server 和 client，发现在客户端超时退出后，相应数据还是写入到了内存中，这是不应该的
+
+  ```
+  > make server
+  $ 2021/06/19 00:10:41 start server on port: 8080
+  $ 2021/06/19 00:10:43 receive a create-laptop request with id:7154eb98-2459-495e-911d-9e70034094a2.
+  $ 2021/06/19 00:10:46 store save success 7154eb98-2459-495e-911d-9e70034094a2.
+  
+  -----
+  
+  > make client
+  $ 2021/06/19 00:10:43 dial server: 0.0.0.0:8080
+  $ 2021/06/19 00:10:44 laptop create error: rpc error: code = DeadlineExceeded desc = context deadline exceeded
+  ```
+
+- 修复超时错误，在实际保存数据时，对上下文进行判断
+
+  ```go
+  // service/laptop_server.go
+  func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
+  		// ...
+    
+    	// 新增此行代码测试
+    	time.Sleep(3 * time.Second)
+  
+      if ctx.Err() == context.DeadlineExceeded {
+        log.Print("deadline is exceeded")
+        return nil, fmt.Errorf("deadline is exceeded")
+      }
+  		err := server.Store.Save(laptop)
+  }
+  ```
+
+  
+
+- 再次运行
+
+  ```
+  > make server
+  $ 2021/06/19 00:22:52 receive a create-laptop request with id:f39f76d9-414e-47e3-b38c-efe5a8cea5b5.
+  $ 2021/06/19 00:22:55 deadline is exceeded
+  
+  -----
+  
+  > make client
+  $ 2021/06/19 00:22:52 dial server: 0.0.0.0:8080
+  $ 2021/06/19 00:22:53 laptop create error: rpc error: code = DeadlineExceeded desc = context deadline exceeded
+  ```
+
+  
+
+- 同样，客户端中断执行，在超时前执行 `ctrl+c`，数据同样被写入，修复问题
+
+  ```go
+  // service/laptop_server.go
+  func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
+  		// ...
+    
+    	// 新增此行代码测试
+    	time.Sleep(3 * time.Second)
+  
+      if ctx.Err() == context.Canceled {
+        log.Print("context is canceled")
+        return nil, fmt.Errorf("context is canceled")
+      }
+      if ctx.Err() == context.DeadlineExceeded {
+        log.Print("deadline is exceeded")
+        return nil, fmt.Errorf("deadline is exceeded")
+      }
+    
+  		err := server.Store.Save(laptop)
+  }
+  ```
+
+**--本节结束--**
+

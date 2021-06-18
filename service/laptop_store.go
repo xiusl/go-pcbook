@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/jinzhu/copier"
@@ -46,6 +47,8 @@ func (store *InMemoryLaptopStore) Save(laptop *pb.Laptop) error {
 		return fmt.Errorf("connot copy laptop data: %w", err)
 	}
 	store.data[tmp.Id] = tmp
+
+	log.Printf("store save success %s.\n", tmp.Id)
 	return nil
 }
 

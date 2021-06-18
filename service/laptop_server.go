@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/xiusl/pcbook/pb"
@@ -39,6 +41,18 @@ func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLapt
 			return nil, status.Errorf(codes.Internal, "cannot generate a new UUID: %v", err)
 		}
 		laptop.Id = id.String()
+	}
+
+	time.Sleep(10 * time.Second)
+
+	if ctx.Err() == context.Canceled {
+		log.Print("context is canceled")
+		return nil, fmt.Errorf("context is canceled")
+	}
+
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Print("deadline is exceeded")
+		return nil, fmt.Errorf("deadline is exceeded")
 	}
 
 	err := server.Store.Save(laptop)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"time"
 
 	"github.com/xiusl/pcbook/pb"
 	"github.com/xiusl/pcbook/sample"
@@ -29,7 +30,10 @@ func main() {
 		Laptop: laptop,
 	}
 
-	res, err := laptopClient.CreateLaptop(context.Background(), req)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	res, err := laptopClient.CreateLaptop(ctx, req)
 	if err != nil {
 		st, ok := status.FromError(err)
 		if ok && st.Code() == codes.AlreadyExists {

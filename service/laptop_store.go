@@ -40,7 +40,7 @@ func (store *InMemoryLaptopStore) Save(laptop *pb.Laptop) error {
 	}
 
 	tmp := &pb.Laptop{}
-	err := copier.Copy(laptop, tmp)
+	err := copier.Copy(tmp, laptop)
 	if err != nil {
 		return fmt.Errorf("connot copy laptop data: %w", err)
 	}

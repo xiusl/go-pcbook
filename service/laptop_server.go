@@ -17,17 +17,16 @@ type LaptopServer struct {
 }
 
 // NewLaptopServer 创建一个 laptop 服务器
-func NewLaptopServer() *LaptopServer {
+func NewLaptopServer(stroe LaptopStore) *LaptopServer {
 	return &LaptopServer{
-		store: NewInMemoryLaptopStore(),
+		store: stroe,
 	}
 }
 
-// CreateLaptap 实现创建 laptop 的方法
+// CreateLaptop 实现创建 laptop 的方法
 func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
 	laptop := req.GetLaptop()
 	log.Printf("receive a create-laptop request with id:%s.\n", laptop.Id)
-
 	// 检查 UUID
 	if len(laptop.Id) > 0 {
 		_, err := uuid.Parse(laptop.Id)

@@ -108,6 +108,7 @@ func MewLaptop() *pb.Laptop {
 		Ram:      NewRAM(),
 		Gpus:     []*pb.GPU{NewGPU()},
 		Storages: []*pb.Storage{NewSSD(), NewHHD()},
+		Screen:   NewScreen(),
 		Keyboard: MewKeyboard(),
 		Weight: &pb.Laptop_WeightKg{
 			WeightKg: randomFloat(1, 3),

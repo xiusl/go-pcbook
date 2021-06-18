@@ -96,8 +96,8 @@ func NewScreen() *pb.Screen {
 	}
 }
 
-// MewLaptop 创建一个
-func MewLaptop() *pb.Laptop {
+// NewLaptop 创建一个
+func NewLaptop() *pb.Laptop {
 	brand := randomLaptopBrand()
 	name := randomLaptopName(brand)
 	return &pb.Laptop{

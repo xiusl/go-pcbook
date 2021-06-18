@@ -292,14 +292,161 @@
   ok  	github.com/xiusl/pcbook/service	0.595s
   ```
 
+## 实现真正的 Server & Client
+
+- 删除主目录的 `main.go`
+
+- 新建 `cmd/server` 和 `cmd/client` 目录，在两个目录下创建 `main.go`
+
+  ```
+  - cmd/
+    - server/
+      - main.go
+    - client/
+      - main.go
+  ```
+
   
 
-- a
+- 修改 `Makefile`
 
-- asas
+  ```makefile
+  server:
+    go run cmd/server/main.go
+  client:
+    go run cmd/client/main.go
+  ```
 
-- sda
+  
 
-- sada
+- 完善 `cmd/server/main.go`
 
-- 
+  ```go
+  func main() {
+      port := flag.String("port", "", "server port")
+      flag.Parse()
+      log.Printf("start server on port: %s", *port)
+  
+      laptopServer := service.NewLaptopServer(service.NewInMemoryLaptopStore())
+      grpcServer := grpc.NewServer()
+      pb.RegisterLaptopServicesServer(grpcServer, laptopServer)
+  
+      address := fmt.Sprintf("0.0.0.0:%s", *port)
+      listener, err := net.Listen("tcp", address)
+      if err != nil {
+        log.Fatalf("cannot start server: %v", err)
+      }
+  
+      err = grpcServer.Serve(listener)
+      if err != nil {
+        log.Fatalf("cannot start server: %v", err)
+      }
+  }
+  ```
+
+  
+
+- 完善 `cmd/client/main.go`
+
+  ```go
+  func main() {
+      addr := flag.String("addr", "", "the server address")
+      flag.Parse()
+      log.Printf("dial server: %s", *addr)
+  
+      conn, err := grpc.Dial(*addr, grpc.WithInsecure())
+      if err != nil {
+        log.Fatalf("cannot dial server: %v", err)
+      }
+  
+      laptopClient := pb.NewLaptopServicesClient(conn)
+  
+      laptop := sample.NewLaptop()
+      req := &pb.CreateLaptopRequest{
+        Laptop: laptop,
+      }
+  
+      res, err := laptopClient.CreateLaptop(context.Background(), req)
+      if err != nil {
+        st, ok := status.FromError(err)
+        if ok && st.Code() == codes.AlreadyExists {
+          log.Println("laptop already exists.")
+        } else {
+          log.Printf("laptop create error: %v", err)
+        }
+        return
+      }
+  
+      log.Printf("created laptop success, id: %v", res.Id)
+  }
+  
+  ```
+
+  
+
+- 更新 `Makefile`
+
+  ```make
+  server:
+  	go run cmd/server/main.go -port=8080
+  client:
+  	go run cmd/client/main.go -addr="0.0.0.0:8080"
+  ```
+
+  
+
+- 运行服务
+
+  ```shell
+  $ make server
+  > go run cmd/server/main.go -port=8080
+  > 2021/06/18 23:03:19 start server on port: 8080
+  ```
+
+  
+
+- 运行客户端
+
+  ```shell
+  $ make client
+  > go run cmd/client/main.go -addr="0.0.0.:8080"
+  > 2021/06/18 23:13:26 dial server: 0.0.0.0:8080
+  > 2021/06/18 23:13:26 created laptop success, id: d53003bc-0118-4e91-93d8-e7d04c9b7a75
+  
+  // 服务端日志
+  > 2021/06/18 23:13:26 receive a create-laptop request with id:d53003bc-0118-4e91-93d8-e7d04c9b7a75.
+  ```
+
+  
+
+  - 修改客户端代码，验证 laptop exist
+
+    ```
+    laptop := sample.NewLaptop()
+    laptop.Id = "d53003bc-0118-4e91-93d8-e7d04c9b7a75"
+    
+    // 运行
+    $ make client
+    > go run cmd/client/main.go -addr="0.0.0.0:8080"
+    > 2021/06/18 23:14:00 dial server: 0.0.0.0:8080
+    > 2021/06/18 23:14:00 laptop already exists.
+    ```
+
+    
+
+  - 修改客户端代码，验证 valid laptop id
+
+    ```
+    laptop := sample.NewLaptop()
+    laptop.Id = "invalid-id"
+    
+    // 运行
+    ￥ make client
+    > go run cmd/client/main.go -addr="0.0.0.0:8080"
+    > 2021/06/18 23:14:10 dial server: 0.0.0.0:8080
+    > 2021/06/18 23:14:10 laptop create error: rpc error: code = InvalidArgument desc = laptap ID is not a valid UUID: invalid UUID length: 10
+    ```
+
+- Todo
+
+- Todo

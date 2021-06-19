@@ -18,7 +18,7 @@
       double max_price_usd = 1;
       uint32 min_cpu_cores = 2;
       double min_cpu_ghz = 3;
-  		Memory min_ram = 4;
+      Memory min_ram = 4;
   }
   ```
 
@@ -66,7 +66,6 @@
   
   func (store *InMemoryLaptopStore) Search(filter *pb.Filter, found func(laptop *pb.Laptop) error) error {
       // ...
-      
   }
   
   // 提供一些辅助函数
@@ -77,9 +76,9 @@
       // ...
   }
   ```
-
   
 
+  
 - 在 `laptop_server.go` 实现 `SearchLaptop`
 
   ```go
@@ -113,20 +112,20 @@
 
   ```go
   func main() {
-  	// ...
+      // ...
   
-  	for i := 0; i < 10; i++ {
-  		createLaptop(laptopClient)
-  	}
+      for i := 0; i < 10; i++ {
+          createLaptop(laptopClient)
+      }
   
-  	filter := &pb.Filter{
-  		MaxPriceUsd: 1000,
-  		MinCpuCores: 4,
-  		MinCpuGhz:   2.0,
-  		MinRam:      &pb.Memory{Value: 6, Unit: pb.Memory_GIGABYTE},
-  	}
+      filter := &pb.Filter{
+          MaxPriceUsd: 1000,
+          MinCpuCores: 4,
+          MinCpuGhz:   2.0,
+          MinRam:      &pb.Memory{Value: 6, Unit: pb.Memory_GIGABYTE},
+      }
   
-  	searchTaplop(laptopClient, filter)
+      searchTaplop(laptopClient, filter)
   }
   ```
   
@@ -136,38 +135,38 @@
 
     ```go
     func searchTaplop(laptopClient pb.LaptopServicesClient, filter *pb.Filter) {
-    	log.Printf("search filter: %v", filter)
+        log.Printf("search filter: %v", filter)
     
-    	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-    	defer cancel()
+        ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+        defer cancel()
     
-    	req := &pb.SearchLaptopRequest{
-    		Filter: filter,
-    	}
-    	stream, err := laptopClient.SearchLaptop(ctx, req)
-    	if err != nil {
-    		log.Fatalf("cannot search laptop: %v", err)
-    	}
+        req := &pb.SearchLaptopRequest{
+            Filter: filter,
+        }
+        stream, err := laptopClient.SearchLaptop(ctx, req)
+        if err != nil {
+            log.Fatalf("cannot search laptop: %v", err)
+        }
     
-    	for {
-    		res, err := stream.Recv()
-    		if err == io.EOF {
-    			return
-    		}
-    		if err != nil {
-    			log.Fatalf("cannot receive response: %v", err)
-    		}
+        for {
+            res, err := stream.Recv()
+            if err == io.EOF {
+                return
+            }
+            if err != nil {
+                log.Fatalf("cannot receive response: %v", err)
+            }
     
-    		laptop := res.GetLaptop()
-    		log.Print("- found: ", laptop.GetId())
-    		log.Print("  + brand: ", laptop.GetBrand())
-    		log.Print("  + name: ", laptop.GetName())
-    		log.Print("  + cpu cores: ", laptop.GetCpu().GetNumberCores())
-    		log.Print("  + cpu min ghz: ", laptop.GetCpu().GetMinGhz())
-    		log.Print("  + ram: ", laptop.GetRam().GetValue(), laptop.GetRam().GetUnit())
-    		log.Print("  + price: ", laptop.GetPriceUsd())
+            laptop := res.GetLaptop()
+            log.Print("- found: ", laptop.GetId())
+            log.Print("  + brand: ", laptop.GetBrand())
+            log.Print("  + name: ", laptop.GetName())
+            log.Print("  + cpu cores: ", laptop.GetCpu().GetNumberCores())
+            log.Print("  + cpu min ghz: ", laptop.GetCpu().GetMinGhz())
+            log.Print("  + ram: ", laptop.GetRam().GetValue(), laptop.GetRam().GetUnit())
+            log.Print("  + price: ", laptop.GetPriceUsd())
     
-    	}
+        }
     }
     ```
 
@@ -226,15 +225,15 @@ $ 2021/06/19 10:28:25   + price: 851.5690577317878
     ```go
     // service/laptop_store.go
     func (store *InMemoryLaptopStore) Search(filter *pb.Filter, found func(laptop *pb.Laptop) error) error {
-    	store.mutex.Lock()
-    	defer store.mutex.Unlock()
+        store.mutex.Lock()
+        defer store.mutex.Unlock()
     
-    	for _, laptop := range store.data {
+        for _, laptop := range store.data {
     
-    		time.Sleep(4 * time.Second)
-    		log.Print("check laptop id ", laptop.Id)
-        	if isQualified(filter, laptop) {
-            	// ...
+            time.Sleep(4 * time.Second)
+            log.Print("check laptop id ", laptop.Id)
+            if isQualified(filter, laptop) {
+                // ...
             }
         }
         // ...
@@ -248,22 +247,22 @@ $ 2021/06/19 10:28:25   + price: 851.5690577317878
     ```go
     // service/laptop_store.go
     func (store *InMemoryLaptopStore) Search(ctx context.Context, filter *pb.Filter, found func(laptop *pb.Laptop) error) error {
-    	store.mutex.Lock()
-    	defer store.mutex.Unlock()
+        store.mutex.Lock()
+        defer store.mutex.Unlock()
     
-    	for _, laptop := range store.data {
+        for _, laptop := range store.data {
     
-    		time.Sleep(4 * time.Second)
-            
+            time.Sleep(4 * time.Second)
+    
             if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
-    			log.Print("context is canceled")
-    			return errors.New("context is canceled")
-    		}
-            
-    		log.Print("check laptop id ", laptop.Id)
-       
+                log.Print("context is canceled")
+                return errors.New("context is canceled")
+            }
+    
+            log.Print("check laptop id ", laptop.Id)
+    
             if isQualified(filter, laptop) {
-            	// ...
+                // ...
             }
         }
         // ...
@@ -273,11 +272,11 @@ $ 2021/06/19 10:28:25   + price: 851.5690577317878
     ```go
     // service/laptop_server.go
     func (server *LaptopServer) SearchLaptop(req *pb.SearchLaptopRequest, stream pb.LaptopServices_SearchLaptopServer) error {
-    	filter := req.GetFilter()
-    	log.Printf("receive a search-laptop request with filter: %v", filter)
+        filter := req.GetFilter()
+        log.Printf("receive a search-laptop request with filter: %v", filter)
         // add stream.Context()
-    	err := server.Store.Search(stream.Context(), filter, func(laptop *pb.Laptop) error {
-        	// ...
+        err := server.Store.Search(stream.Context(), filter, func(laptop *pb.Laptop) error {
+            // ...
         })
     }
     ```
@@ -294,68 +293,68 @@ $ 2021/06/19 10:28:25   + price: 851.5690577317878
 // service/laptop_client_test.go
 func TestClientSearchLaptop(t *testing.T) {
 
-	filter := &pb.Filter{
-		MaxPriceUsd: 1000,
-		MinCpuCores: 4,
-		MinCpuGhz:   2.0,
-		MinRam:      &pb.Memory{Value: 6, Unit: pb.Memory_GIGABYTE},
-	}
+    filter := &pb.Filter{
+        MaxPriceUsd: 1000,
+        MinCpuCores: 4,
+        MinCpuGhz:   2.0,
+        MinRam:      &pb.Memory{Value: 6, Unit: pb.Memory_GIGABYTE},
+    }
 
-	store := service.NewInMemoryLaptopStore()
-	expectedIDs := make(map[string]bool)
+    store := service.NewInMemoryLaptopStore()
+    expectedIDs := make(map[string]bool)
 
     // 创建 6 个 laptop，其中前四个为不符合条件的情况，后两个为预期结果
-	for i := 0; i < 6; i++ {
-		laptop := sample.NewLaptop()
-		switch i {
-		case 0:
-			laptop.PriceUsd = 1500
-		case 1:
-			laptop.Cpu.NumberCores = 1
-		case 2:
-			laptop.Cpu.MinGhz = 1.0
-		case 3:
-			laptop.Ram = &pb.Memory{Value: 1, Unit: pb.Memory_GIGABYTE}
-		case 4:
-			laptop.PriceUsd = 900
-			laptop.Cpu.NumberCores = 8
-			laptop.Cpu.MinGhz = 2.5
-			laptop.Ram = &pb.Memory{Value: 8, Unit: pb.Memory_GIGABYTE}
-			expectedIDs[laptop.Id] = true
-		case 5:
-			laptop.PriceUsd = 888
-			laptop.Cpu.NumberCores = 16
-			laptop.Cpu.MinGhz = 3.5
-			laptop.Ram = &pb.Memory{Value: 16, Unit: pb.Memory_GIGABYTE}
-			expectedIDs[laptop.Id] = true
-		}
+    for i := 0; i < 6; i++ {
+        laptop := sample.NewLaptop()
+        switch i {
+        case 0:
+            laptop.PriceUsd = 1500
+        case 1:
+            laptop.Cpu.NumberCores = 1
+        case 2:
+            laptop.Cpu.MinGhz = 1.0
+        case 3:
+            laptop.Ram = &pb.Memory{Value: 1, Unit: pb.Memory_GIGABYTE}
+        case 4:
+            laptop.PriceUsd = 900
+            laptop.Cpu.NumberCores = 8
+            laptop.Cpu.MinGhz = 2.5
+            laptop.Ram = &pb.Memory{Value: 8, Unit: pb.Memory_GIGABYTE}
+            expectedIDs[laptop.Id] = true
+        case 5:
+            laptop.PriceUsd = 888
+            laptop.Cpu.NumberCores = 16
+            laptop.Cpu.MinGhz = 3.5
+            laptop.Ram = &pb.Memory{Value: 16, Unit: pb.Memory_GIGABYTE}
+            expectedIDs[laptop.Id] = true
+        }
 
-		err := store.Save(laptop)
-		require.NoError(t, err)
-	}
+        err := store.Save(laptop)
+        require.NoError(t, err)
+    }
 
     // 构建测试服务器
-	_, serverAddr := startTestLaptopServer(t, store)
-	laptopClient := newTestLaptopClient(t, serverAddr)
+    _, serverAddr := startTestLaptopServer(t, store)
+    laptopClient := newTestLaptopClient(t, serverAddr)
 
-	req := &pb.SearchLaptopRequest{
-		Filter: filter,
-	}
-	stream, err := laptopClient.SearchLaptop(context.Background(), req)
-	require.NoError(t, err)
+    req := &pb.SearchLaptopRequest{
+        Filter: filter,
+    }
+    stream, err := laptopClient.SearchLaptop(context.Background(), req)
+    require.NoError(t, err)
 
-	found := 0
-	for {
-		res, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
+    found := 0
+    for {
+        res, err := stream.Recv()
+        if err == io.EOF {
+            break
+        }
 
-		require.NoError(t, err)
-		require.Contains(t, expectedIDs, res.GetLaptop().GetId())
-		found += 1
-	}
-	require.Equal(t, found, len(expectedIDs))
+        require.NoError(t, err)
+        require.Contains(t, expectedIDs, res.GetLaptop().GetId())
+        found += 1
+    }
+    require.Equal(t, found, len(expectedIDs))
 }
 ```
 

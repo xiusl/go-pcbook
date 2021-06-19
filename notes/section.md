@@ -35,15 +35,15 @@
   ```go
   type CreateLaptopRequest struct {
       // ...
-  	Laptop *Laptop `protobuf:"bytes,1,opt,name=laptop,proto3" json:"laptop,omitempty"`
+      Laptop *Laptop `protobuf:"bytes,1,opt,name=laptop,proto3" json:"laptop,omitempty"`
   }
   type CreateLaptopResponse struct {
-  	// ...
-  	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+      // ...
+      Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
   }
   // LaptopServicesServer is the server API for LaptopServices service.
   type LaptopServicesServer interface {
-  	CreateLaptop(context.Context, *CreateLaptopRequest) (*CreateLaptopResponse, error)
+      CreateLaptop(context.Context, *CreateLaptopRequest) (*CreateLaptopResponse, error)
   }
   ```
 
@@ -57,13 +57,13 @@
 
   ```go
   type LaptopServer struct {
-  	store LaptopStore
+      store LaptopStore
   }
   
   func NewLaptopServer() *LaptopServer {
-  	return &LaptopServer{
-  		store: NewInMemoryLaptopStore(),
-  	}
+      return &LaptopServer{
+          store: NewInMemoryLaptopStore(),
+      }
   }
   ```
 
@@ -83,16 +83,16 @@
 
   ```go
   type InMemoryLaptopStore struct {
-  	mu   sync.Mutex
-  	data map[string]*pb.Laptop
+      mu   sync.Mutex
+      data map[string]*pb.Laptop
   }
   
   func NewInMemoryLaptopStore() *InMemoryLaptopStore {
-  	//...
+      //...
   }
   
   func (store *InMemoryLaptopStore) Save(laptop *pb.Laptop) error {
-  	// ...
+      // ...
   }
   ```
 
@@ -102,7 +102,7 @@
 
   ```go
   func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
-  	// ...
+      // ...
   }
   ```
 
@@ -125,36 +125,36 @@
   require.NoError(t, err)
   
   testCases := []struct {
-  		name   string
-  		laptop *pb.Laptop
-  		store  service.LaptopStore
-  		code   codes.Code
-  	}{
-  		{
-  			name:   "success_with_id",
-  			laptop: sample.NewLaptop(),
-  			store:  service.NewInMemoryLaptopStore(),
-  			code:   codes.OK,
-  		},
-  		{
-  			name:   "success_no_id",
-  			laptop: laptopNoID,
-  			store:  service.NewInMemoryLaptopStore(),
-  			code:   codes.OK,
-  		},
-  		{
-  			name:   "failure_invalid_id",
-  			laptop: laptopInvalidID,
-  			store:  service.NewInMemoryLaptopStore(),
-  			code:   codes.InvalidArgument,
-  		},
-  		{
-  			name:   "failure_duplicate_id",
-  			laptop: laptopDuplicateID,
-  			store:  storeDuplicateID,
-  			code:   codes.AlreadyExists,
-  		},
-  	}
+          name   string
+          laptop *pb.Laptop
+          store  service.LaptopStore
+          code   codes.Code
+      }{
+          {
+              name:   "success_with_id",
+              laptop: sample.NewLaptop(),
+              store:  service.NewInMemoryLaptopStore(),
+              code:   codes.OK,
+          },
+          {
+              name:   "success_no_id",
+              laptop: laptopNoID,
+              store:  service.NewInMemoryLaptopStore(),
+              code:   codes.OK,
+          },
+          {
+              name:   "failure_invalid_id",
+              laptop: laptopInvalidID,
+              store:  service.NewInMemoryLaptopStore(),
+              code:   codes.InvalidArgument,
+          },
+          {
+              name:   "failure_duplicate_id",
+              laptop: laptopDuplicateID,
+              store:  storeDuplicateID,
+              code:   codes.AlreadyExists,
+          },
+      }
   ```
 
   
@@ -201,7 +201,7 @@
 
   ```go
   func TestClientCreateLaptop(t *testing.T) {
-  		// ...
+      // ...
   }
   ```
 
@@ -250,7 +250,7 @@
       expectedID := laptop.Id
   
       req := &pb.CreateLaptopRequest{
-        Laptop: laptop,
+          Laptop: laptop,
       }
   
       resp, err := laptopClient.CreateLaptop(context.Background(), req)
@@ -273,12 +273,12 @@
 
   ```go
   type LaptopStore interface {
-  	// ...
-  	FindByID(id string) (*pb.Laptop, error)
+      // ...
+      FindByID(id string) (*pb.Laptop, error)
   }
   
   func (store *InMemoryLaptopStore) FindByID(id string) (*pb.Laptop, error) {
-    //...
+      //...
   }
   ```
 
@@ -334,12 +334,12 @@
       address := fmt.Sprintf("0.0.0.0:%s", *port)
       listener, err := net.Listen("tcp", address)
       if err != nil {
-        log.Fatalf("cannot start server: %v", err)
+          log.Fatalf("cannot start server: %v", err)
       }
   
       err = grpcServer.Serve(listener)
       if err != nil {
-        log.Fatalf("cannot start server: %v", err)
+          log.Fatalf("cannot start server: %v", err)
       }
   }
   ```
@@ -356,25 +356,25 @@
   
       conn, err := grpc.Dial(*addr, grpc.WithInsecure())
       if err != nil {
-        log.Fatalf("cannot dial server: %v", err)
+          log.Fatalf("cannot dial server: %v", err)
       }
   
       laptopClient := pb.NewLaptopServicesClient(conn)
   
       laptop := sample.NewLaptop()
       req := &pb.CreateLaptopRequest{
-        Laptop: laptop,
+          Laptop: laptop,
       }
   
       res, err := laptopClient.CreateLaptop(context.Background(), req)
       if err != nil {
-        st, ok := status.FromError(err)
-        if ok && st.Code() == codes.AlreadyExists {
-          log.Println("laptop already exists.")
-        } else {
-          log.Printf("laptop create error: %v", err)
-        }
-        return
+          st, ok := status.FromError(err)
+          if ok && st.Code() == codes.AlreadyExists {
+              log.Println("laptop already exists.")
+          } else {
+              log.Printf("laptop create error: %v", err)
+          }
+          return
       }
   
       log.Printf("created laptop success, id: %v", res.Id)
@@ -388,9 +388,9 @@
 
   ```make
   server:
-  	go run cmd/server/main.go -port=8080
+      go run cmd/server/main.go -port=8080
   client:
-  	go run cmd/client/main.go -addr="0.0.0.0:8080"
+      go run cmd/client/main.go -addr="0.0.0.0:8080"
   ```
 
   
@@ -454,7 +454,7 @@
   ```go
   func main() {
       // ...
-    
+  
       // 1 秒后将超时退出
       ctx, cancel := context.WithTimeout(context.Background(), time.Second)
       defer cancel()
@@ -469,12 +469,12 @@
   ```go
   // service/laptop_server.go
   func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
-  		// ...
+      // ...
     
-    	// 新增此行代码测试
-    	time.Sleep(3 * time.Second)
+      // 新增此行代码测试
+      time.Sleep(3 * time.Second)
   
-  		err := server.Store.Save(laptop)
+      err := server.Store.Save(laptop)
   }
   ```
 
@@ -498,16 +498,16 @@
   ```go
   // service/laptop_server.go
   func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
-  		// ...
-    
-    	// 新增此行代码测试
-    	time.Sleep(3 * time.Second)
+      // ...
+  
+      // 新增此行代码测试
+      time.Sleep(3 * time.Second)
   
       if ctx.Err() == context.DeadlineExceeded {
-        log.Print("deadline is exceeded")
-        return nil, fmt.Errorf("deadline is exceeded")
+          log.Print("deadline is exceeded")
+          return nil, fmt.Errorf("deadline is exceeded")
       }
-  		err := server.Store.Save(laptop)
+      err := server.Store.Save(laptop)
   }
   ```
 
@@ -534,21 +534,21 @@
   ```go
   // service/laptop_server.go
   func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
-  		// ...
-    
-    	// 新增此行代码测试
-    	time.Sleep(3 * time.Second)
+      // ...
+  
+      // 新增此行代码测试
+      time.Sleep(3 * time.Second)
   
       if ctx.Err() == context.Canceled {
-        log.Print("context is canceled")
-        return nil, fmt.Errorf("context is canceled")
+          log.Print("context is canceled")
+          return nil, fmt.Errorf("context is canceled")
       }
       if ctx.Err() == context.DeadlineExceeded {
-        log.Print("deadline is exceeded")
-        return nil, fmt.Errorf("deadline is exceeded")
+          log.Print("deadline is exceeded")
+          return nil, fmt.Errorf("deadline is exceeded")
       }
-    
-  		err := server.Store.Save(laptop)
+  
+      err := server.Store.Save(laptop)
   }
   ```
 

@@ -163,33 +163,33 @@
 
   ```go
   for _, tc := range testCases {
-  		t.Run(tc.name, func(t *testing.T) {
+      t.Run(tc.name, func(t *testing.T) {
   
-  			req := &pb.CreateLaptopRequest{
-  				Laptop: tc.laptop,
-  			}
+          req := &pb.CreateLaptopRequest{
+              Laptop: tc.laptop,
+          }
   
-  			srv := service.NewLaptopServer(tc.store)
+          srv := service.NewLaptopServer(tc.store)
   
-  			resp, err := srv.CreateLaptop(context.Background(), req)
+          resp, err := srv.CreateLaptop(context.Background(), req)
   
-  			if tc.code == codes.OK {
-  				require.NoError(t, err)
-  				require.NotNil(t, resp)
-  				fmt.Println(tc.laptop.Id)
-  				fmt.Println(resp)
-  				require.NotEmpty(t, resp.Id)
-  				if len(tc.laptop.Id) > 0 {
-  					require.Equal(t, resp.Id, tc.laptop.Id)
-  				}
-  			} else {
-  				require.Error(t, err)
-  				require.Nil(t, resp)
-  				st, ok := status.FromError(err)
-  				require.True(t, ok)
-  				require.Equal(t, tc.code, st.Code())
-  			}
-  		})
+          if tc.code == codes.OK {
+              require.NoError(t, err)
+              require.NotNil(t, resp)
+              fmt.Println(tc.laptop.Id)
+              fmt.Println(resp)
+              require.NotEmpty(t, resp.Id)
+              if len(tc.laptop.Id) > 0 {
+                  require.Equal(t, resp.Id, tc.laptop.Id)
+              }
+          } else {
+              require.Error(t, err)
+              require.Nil(t, resp)
+              st, ok := status.FromError(err)
+              require.True(t, ok)
+              require.Equal(t, tc.code, st.Code())
+          }
+      })
   }
   ```
 

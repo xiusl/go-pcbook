@@ -1,9 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/google/uuid"
@@ -12,15 +14,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// 1 mb
+const maxImageSize = 1 << 20
+
 // LaptopServer 提供 laptop 服务的服务器
 type LaptopServer struct {
-	Store LaptopStore
+	laptopStore LaptopStore
+	imageStore  ImageStore
 }
 
 // NewLaptopServer 创建一个 laptop 服务器
-func NewLaptopServer(stroe LaptopStore) *LaptopServer {
+func NewLaptopServer(laptopStore LaptopStore, imageStore ImageStore) *LaptopServer {
 	return &LaptopServer{
-		Store: stroe,
+		laptopStore: laptopStore,
+		imageStore:  imageStore,
 	}
 }
 
@@ -52,7 +59,7 @@ func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLapt
 		return nil, fmt.Errorf("deadline is exceeded")
 	}
 
-	err := server.Store.Save(laptop)
+	err := server.laptopStore.Save(laptop)
 	if err != nil {
 		code := codes.Internal
 		if errors.Is(err, ErrAlreadyExists) {
@@ -69,7 +76,7 @@ func (server *LaptopServer) SearchLaptop(req *pb.SearchLaptopRequest, stream pb.
 	filter := req.GetFilter()
 	log.Printf("receive a search-laptop request with filter: %v", filter)
 
-	err := server.Store.Search(stream.Context(), filter, func(laptop *pb.Laptop) error {
+	err := server.laptopStore.Search(stream.Context(), filter, func(laptop *pb.Laptop) error {
 		res := &pb.SearchLaptopResponse{
 			Laptop: laptop,
 		}
@@ -83,5 +90,89 @@ func (server *LaptopServer) SearchLaptop(req *pb.SearchLaptopRequest, stream pb.
 	if err != nil {
 		return status.Errorf(codes.Internal, "unexpected error: %v", err)
 	}
+	return nil
+}
+
+func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServer) error {
+	req, err := stream.Recv()
+	if err != nil {
+		log.Print("cannot receive image info", err)
+		return status.Error(codes.Unknown, "cannot receive image info")
+	}
+
+	laptapID := req.GetInfo().GetLaptopId()
+	imageType := req.GetInfo().GetImageType()
+	log.Printf("receive an upload-image request for laptop %s with image type %s", laptapID, imageType)
+
+	laptap, err := server.laptopStore.FindByID(laptapID)
+	if err != nil {
+		log.Print("cannot find the laptop", err)
+		return status.Error(codes.Internal, "cannot find the laptop")
+	}
+	if laptap == nil {
+		log.Printf("laptop %s doesn't exist", laptapID)
+		return status.Errorf(codes.InvalidArgument, "laptop %s doesn't exist", laptapID)
+	}
+
+	imageData := bytes.Buffer{}
+	imageSize := 0
+
+	for {
+		log.Print("wait to receive more data")
+
+		if stream.Context().Err() == context.Canceled {
+			log.Print("context is canceled")
+			return fmt.Errorf("context is canceled")
+		}
+
+		if stream.Context().Err() == context.DeadlineExceeded {
+			log.Print("deadline is exceeded")
+			return fmt.Errorf("deadline is exceeded")
+		}
+
+		req, err := stream.Recv()
+		if err == io.EOF {
+			log.Print("no more data")
+			break
+		}
+		if err != nil {
+			log.Printf("cannot receive chunk data: %v", err)
+			return status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err)
+		}
+
+		chunk := req.GetChunkData()
+		size := len(chunk)
+
+		imageSize += size
+		if imageSize > maxImageSize {
+			log.Printf("image to large %v > %v", imageSize, maxImageSize)
+			return status.Errorf(codes.InvalidArgument, "image to large %v > %v", imageSize, maxImageSize)
+		}
+
+		_, err = imageData.Write(chunk)
+		if err != nil {
+			log.Printf("cannot write chunk data: %v", err)
+			return status.Errorf(codes.Internal, "cannot write chunk data: %v", err)
+		}
+	}
+
+	imageID, err := server.imageStore.Save(laptapID, imageType, imageData)
+	if err != nil {
+		log.Printf("cannot save image to file: %v", err)
+		return status.Errorf(codes.Internal, "cannot save image to file: %v", err)
+	}
+
+	res := &pb.UploadImageResponse{
+		Id:   imageID,
+		Size: uint32(imageSize),
+	}
+
+	err = stream.SendAndClose(res)
+	if err != nil {
+		log.Printf("cannot send the response: %v", err)
+		return status.Errorf(codes.Internal, "cannot send the response: %v", err)
+	}
+
+	log.Printf("saved image with id: %s, size: %d", imageID, imageSize)
 	return nil
 }

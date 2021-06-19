@@ -15,7 +15,9 @@ import (
 )
 
 func TestClientCreateLaptop(t *testing.T) {
-	laptopServer, serverAddr := startTestLaptopServer(t, service.NewInMemoryLaptopStore())
+
+	laptopStore := service.NewInMemoryLaptopStore()
+	serverAddr := startTestLaptopServer(t, laptopStore, nil)
 	laptopClient := newTestLaptopClient(t, serverAddr)
 
 	laptop := sample.NewLaptop()
@@ -30,7 +32,7 @@ func TestClientCreateLaptop(t *testing.T) {
 	require.NotNil(t, resp.Id)
 	require.Equal(t, resp.Id, expectedID)
 
-	other, err := laptopServer.Store.FindByID(expectedID)
+	other, err := laptopStore.FindByID(expectedID)
 	require.NoError(t, err)
 	require.NotNil(t, other.Id)
 	require.Equal(t, other.Id, expectedID)
@@ -79,7 +81,7 @@ func TestClientSearchLaptop(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	_, serverAddr := startTestLaptopServer(t, store)
+	serverAddr := startTestLaptopServer(t, store, nil)
 	laptopClient := newTestLaptopClient(t, serverAddr)
 
 	req := &pb.SearchLaptopRequest{
@@ -102,8 +104,8 @@ func TestClientSearchLaptop(t *testing.T) {
 	require.Equal(t, found, len(expectedIDs))
 }
 
-func startTestLaptopServer(t *testing.T, stroe service.LaptopStore) (*service.LaptopServer, string) {
-	laptopServer := service.NewLaptopServer(stroe)
+func startTestLaptopServer(t *testing.T, laptopstroe service.LaptopStore, imageStore service.ImageStore) string {
+	laptopServer := service.NewLaptopServer(laptopstroe, imageStore)
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterLaptopServicesServer(grpcServer, laptopServer)
@@ -113,7 +115,7 @@ func startTestLaptopServer(t *testing.T, stroe service.LaptopStore) (*service.La
 
 	go grpcServer.Serve(listen)
 
-	return laptopServer, listen.Addr().String()
+	return listen.Addr().String()
 }
 
 func newTestLaptopClient(t *testing.T, addr string) pb.LaptopServicesClient {

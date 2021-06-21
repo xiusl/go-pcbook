@@ -75,15 +75,18 @@ func searchTaplop(laptopClient pb.LaptopServicesClient, filter *pb.Filter) {
 }
 
 func uploadImage(laptopClient pb.LaptopServicesClient, laptopID string, imagePath string) {
+    // 打开文件
     file, err := os.Open(imagePath)
     if err != nil {
         log.Fatal("cannot open image file:", err)
     }
     defer file.Close()
 
+    // 创建一个带有 2s 超时的上下文
     ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
     defer cancel()
 
+    // 调用客户端，开启一个请求流
     stream, err := laptopClient.UploadImage(ctx)
     if err != nil {
         log.Fatal("cannot upload image:", err)
@@ -97,15 +100,19 @@ func uploadImage(laptopClient pb.LaptopServicesClient, laptopID string, imagePat
             },
         },
     }
+
+    // 先发送图片基本的信息
     err = stream.Send(req)
     if err != nil {
         log.Fatal("cannot send image info:", err)
     }
 
     reader := bufio.NewReader(file)
+    // 创建一个 1024 byte 的二级制数据块
     buffer := make([]byte, 1024)
 
     for {
+        // 每次读取 1mb 数据
         n, err := reader.Read(buffer)
         if err == io.EOF {
             break
@@ -120,12 +127,14 @@ func uploadImage(laptopClient pb.LaptopServicesClient, laptopID string, imagePat
             },
         }
 
+        // 发送数据
         err = stream.Send(req)
         if err != nil {
             log.Fatal("cannot send chunk data to server:", err)
         }
     }
 
+    // 关闭并接收响应
     res, err := stream.CloseAndRecv()
     if err != nil {
         log.Fatal("cannot receive response:", err)

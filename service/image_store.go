@@ -44,21 +44,26 @@ func (store *DiskImageStore) Save(laptopID string, imageType string, imageData b
         return "", fmt.Errorf("cannot generate image id %w", err)
     }
 
+    // 拼接图片路径
     imagePath := fmt.Sprintf("%s/%s%s", store.imageFolder, imageID, imageType)
 
+    // 创建图片的文件
     file, err := os.Create(imagePath)
     if err != nil {
         return "", fmt.Errorf("cannot create image file %w", err)
     }
 
+    // 将图片的二进制数据写入文件中
     _, err = imageData.WriteTo(file)
     if err != nil {
         return "", fmt.Errorf("cannot write image date to file %w", err)
     }
 
+    // 读写锁
     store.mutex.Lock()
     defer store.mutex.Unlock()
 
+    // 更新内存中的图像信息
     store.images[imageID.String()] = &ImageInfo{
         LaptopID: laptopID,
         Type:     imageType,

@@ -94,6 +94,8 @@ func (server *LaptopServer) SearchLaptop(req *pb.SearchLaptopRequest, stream pb.
 }
 
 func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServer) error {
+
+    // 读取请求信息
     req, err := stream.Recv()
     if err != nil {
         log.Print("cannot receive image info", err)
@@ -104,6 +106,7 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServ
     imageType := req.GetInfo().GetImageType()
     log.Printf("receive an upload-image request for laptop %s with image type %s", laptapID, imageType)
 
+    // 获取需要存储图片的便携电脑
     laptap, err := server.laptopStore.FindByID(laptapID)
     if err != nil {
         log.Print("cannot find the laptop", err)
@@ -117,9 +120,11 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServ
     imageData := bytes.Buffer{}
     imageSize := 0
 
+    // 开始从请求中不断接受数据
     for {
         log.Print("wait to receive more data")
 
+        // 对上下文进行判断
         if stream.Context().Err() == context.Canceled {
             log.Print("context is canceled")
             return fmt.Errorf("context is canceled")
@@ -130,6 +135,7 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServ
             return fmt.Errorf("deadline is exceeded")
         }
 
+        // 接受请求
         req, err := stream.Recv()
         if err == io.EOF {
             log.Print("no more data")
@@ -140,6 +146,7 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServ
             return status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err)
         }
 
+        // 获取请求中的图像数据，分块的
         chunk := req.GetChunkData()
         size := len(chunk)
 
@@ -149,6 +156,7 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServ
             return status.Errorf(codes.InvalidArgument, "image to large %v > %v", imageSize, maxImageSize)
         }
 
+        // 将分块的数据写入到 imageData 中
         _, err = imageData.Write(chunk)
         if err != nil {
             log.Printf("cannot write chunk data: %v", err)
@@ -156,6 +164,7 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServ
         }
     }
 
+    // 调用存储，保存图片
     imageID, err := server.imageStore.Save(laptapID, imageType, imageData)
     if err != nil {
         log.Printf("cannot save image to file: %v", err)
@@ -167,6 +176,7 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServ
         Size: uint32(imageSize),
     }
 
+    // 发送结束响应并关闭流
     err = stream.SendAndClose(res)
     if err != nil {
         log.Printf("cannot send the response: %v", err)

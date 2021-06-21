@@ -21,13 +21,15 @@ const maxImageSize = 1 << 20
 type LaptopServer struct {
     laptopStore LaptopStore
     imageStore  ImageStore
+    ratingStore RatingStore
 }
 
 // NewLaptopServer 创建一个 laptop 服务器
-func NewLaptopServer(laptopStore LaptopStore, imageStore ImageStore) *LaptopServer {
+func NewLaptopServer(laptopStore LaptopStore, imageStore ImageStore, ratingStore RatingStore) *LaptopServer {
     return &LaptopServer{
         laptopStore: laptopStore,
         imageStore:  imageStore,
+        ratingStore: ratingStore,
     }
 }
 
@@ -184,5 +186,62 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopServices_UploadImageServ
     }
 
     log.Printf("saved image with id: %s, size: %d", imageID, imageSize)
+    return nil
+}
+
+// RateLaptop 对 laptop 进行打分
+func (server *LaptopServer) RateLaptop(stream pb.LaptopServices_RateLaptopServer) error {
+    for {
+        // 对上下文进行判断
+        if stream.Context().Err() == context.Canceled {
+            log.Print("context is canceled")
+            return fmt.Errorf("context is canceled")
+        }
+
+        if stream.Context().Err() == context.DeadlineExceeded {
+            log.Print("deadline is exceeded")
+            return fmt.Errorf("deadline is exceeded")
+        }
+
+        req, err := stream.Recv()
+        if err == io.EOF {
+            break
+        }
+        if err != nil {
+            log.Printf("cannot receive stream data: %v", err)
+            return status.Errorf(codes.Unknown, "cannot receive stream data: %v", err)
+        }
+
+        laptopID := req.GetLaptopId()
+        scroe := req.GetScore()
+
+        laptap, err := server.laptopStore.FindByID(laptopID)
+        if err != nil {
+            log.Print("cannot find the laptop", err)
+            return status.Error(codes.Internal, "cannot find the laptop")
+        }
+        if laptap == nil {
+            log.Printf("laptop %s doesn't exist", laptopID)
+            return status.Errorf(codes.InvalidArgument, "laptop %s doesn't exist", laptopID)
+        }
+
+        rating, err := server.ratingStore.Add(laptopID, scroe)
+        if err != nil {
+            log.Printf("cannot add the score to store %v.", err)
+            return status.Errorf(codes.Internal, "cannot add the score to store %v.", err)
+        }
+
+        res := &pb.RateLaptopResponse{
+            LaptopId:     laptopID,
+            RatedCount:   rating.Count,
+            AverageScote: rating.Sum / float64(rating.Count),
+        }
+
+        err = stream.Send(res)
+        if err != nil {
+            log.Printf("cannot send the response: %v", err)
+            return status.Errorf(codes.Internal, "cannot send the response: %v", err)
+        }
+    }
     return nil
 }

@@ -118,3 +118,7 @@ func NewLaptop() *pb.Laptop {
         UpdatedYear: ptypes.TimestampNow(),
     }
 }
+
+func RandomLaptopScore() float64 {
+    return float64(randomInt(1, 10))
+}

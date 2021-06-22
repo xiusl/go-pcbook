@@ -1,4 +1,4 @@
-gpackage service_test
+package service_test
 
 import (
     "bufio"

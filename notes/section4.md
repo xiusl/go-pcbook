@@ -15,21 +15,21 @@
       string laptop_id = 1;
       double score = 2;
   }
-  
+
   message RateLaptopResponse {
       string laptop_id = 1;
       uint32 rated_count = 2;
       double average_scote = 3;
   }
-  
+
   service LaptopServices {
       // ...
       rpc RateLaptop(stream RateLaptopRequest) returns (stream RateLaptopResponse) {};
   }
-  
+
   ```
 
-  
+
 
 - 生成 go 代码
 
@@ -37,7 +37,7 @@
   make gen
   ```
 
-  
+
 
 ## 评分的存储
 
@@ -48,13 +48,13 @@
   type RatingStore interface {
       Add(laptopID string, score float64) (*Rating, error)
   }
-  
+
   // Rating 分数对象
   type Rating struct {
       Count uint32
       Sum   float64
   }
-  
+
   // InMemoryRatingStore 分数存储的内存实现
   type InMemoryRatingStore struct {
       mutex  sync.RWMutex
@@ -62,7 +62,7 @@
   }
   ```
 
-  
+
 
 - 实现存储接口的方法
   ```go
@@ -73,7 +73,7 @@
           rating: make(map[string]*Rating),
       }
   }
-  
+
   // Add 内存分数存储新增
   func (store *InMemoryRatingStore) Add(laptopID string, score float64) (*Rating, error) {
       store.mutex.Lock()
@@ -96,7 +96,7 @@
       imageStore  ImageStore
       ratingStore RatingStore
   }
-  
+
   // NewLaptopServer 创建一个 laptop 服务器
   func NewLaptopServer(laptopStore LaptopStore, imageStore ImageStore, ratingStore RatingStore) *LaptopServer {
       return &LaptopServer{
@@ -107,7 +107,7 @@
   }
   ```
 
-  
+
 
 - 修复之前的一些测试代码
 
@@ -117,18 +117,18 @@
   func startTestLaptopServer(t *testing.T, laptopstroe service.LaptopStore, imageStore service.ImageStore, ratingStore service.RatingStore) string {
   	// ...
   }
-  
+
   func TestUploadImage(t *testing.T) {
       // ...
       // 测试上传图像是不需要评分存储，可以传入 nil
       serverAddr := startTestLaptopServer(t, laptopStore, imageStore, nil)
       // ...
   }
-  
+
   // 测试创建和测试搜索的函数中同样处理
   ```
 
-  
+
 
 - 修复服务端运行代码
 
@@ -144,7 +144,7 @@
   }
   ```
 
-  
+
 
 - 在 `laptop_server.go` 中实现 RPC 调用
 
@@ -154,23 +154,23 @@
       for {
           // 对上下文进行判断
           // ...
-          
+
           // 接收请求
           req, err := stream.Recv()
-         
+
           // 查询便携电脑
           laptap, err := server.laptopStore.FindByID(laptopID)
-          
+
   		// 打分
           rating, err := server.ratingStore.Add(laptopID, scroe)
-          
+
           // 发送本次的响应
           err = stream.Send(res)
-          
+
       }
       return nil
   }
-  
+
   ```
 
 
@@ -185,27 +185,27 @@
   func ratingLaptop(laptopClient pb.LaptopServicesClient, laptopIDS []string, scores []float64) error {
   	// 建立上下文
       ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-      
+
       // 建立流式请求
       stream, err := laptopClient.RateLaptop(ctx)
-      
+
       // 启动协程，不断读取响应
       withResp := make(chan error)
       go for() {
           for {
               res, err := stream.Recv()
               // ...
-          } 
+          }
       }()
-      
+
       // 依次发送多个评分请求
       for i, laptopID := range laptopIDS {
           err = stream.Send(req)
       }
-      
+
       // 关闭发送
       err = stream.CloseSend()
-      
+
       // 返回
       err = <-withResp
       return err
@@ -220,27 +220,27 @@
   func testRatingLaptop(laptopClient pb.LaptopServicesClient) {
       n := 3
       laptopIDS := make([]string, n)
-  
+
       for i := 0; i < n; i++ {
           laptop := sample.NewLaptop()
           createLaptop(laptopClient, laptop)
           laptopIDS[i] = laptop.GetId()
       }
-  
+
       scores := make([]float64, n)
       for {
           fmt.Println("rate laptop (y/n)?:")
           var ans string
           fmt.Scan(&ans)
-  
+
           if strings.ToLower(ans) != "y" {
               break
           }
-  
+
           for i := 0; i < n; i++ {
               scores[i] = sample.RandomLaptopScore()
           }
-  
+
           err := ratingLaptop(laptopClient, laptopIDS, scores)
           if err != nil {
               log.Fatal(err)
@@ -249,9 +249,9 @@
   }
   ```
 
-  
 
-- 
+
+-
 
 
 
@@ -263,41 +263,41 @@
   func TestRatingLaptop(t *testing.T) {
       laptopStore := service.NewInMemoryLaptopStore()
       ratingStore := service.NewInMemoryRatingStore()
-  
+
       laptop := sample.NewLaptop()
       err := laptopStore.Save(laptop)
       require.NoError(t, err)
-  
+
       serverAddr := startTestLaptopServer(t, laptopStore, nil, ratingStore)
       laptopClient := newTestLaptopClient(t, serverAddr)
-  
+
       stream, err := laptopClient.RateLaptop(context.Background())
       require.NoError(t, err)
-  
+
       scores := []float64{8, 7.5, 10}
       averages := []float64{8, 7.75, 8.5}
-  
+
       n := len(scores)
       for i := 0; i < n; i++ {
           req := &pb.RateLaptopRequest{
               LaptopId: laptop.Id,
               Score:    scores[i],
           }
-  
+
           err = stream.Send(req)
           require.NoError(t, err)
       }
-  
+
       err = stream.CloseSend()
       require.NoError(t, err)
-  
+
       for idx := 0; ; idx++ {
           res, err := stream.Recv()
           if err == io.EOF {
               require.Equal(t, n, idx)
               return
           }
-  
+
           require.NoError(t, err)
           require.Equal(t, laptop.GetId(), res.GetLaptopId())
           require.Equal(t, uint32(idx+1), res.GetRatedCount())
@@ -306,5 +306,4 @@
   }
   ```
 
-  
-
+**--本节结束--**

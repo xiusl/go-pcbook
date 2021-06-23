@@ -29,7 +29,7 @@ func (server *AuthServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.
         return nil, status.Errorf(codes.Internal, "cannot find user: %v", err)
     }
 
-    if user == nil || user.IsCorrentPassword(req.GetPassword()) {
+    if user == nil || !user.IsCorrentPassword(req.GetPassword()) {
         return nil, status.Errorf(codes.NotFound, "incorrect username/password")
     }
 

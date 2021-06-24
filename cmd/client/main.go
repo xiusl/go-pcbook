@@ -99,8 +99,14 @@ func loadTLSCredentials() (credentials.TransportCredentials, error) {
         return nil, fmt.Errorf("cannot load the server ca file")
     }
 
+    clientCert, err := tls.LoadX509KeyPair("cert/client-cert.pem", "cert/client-key.pem")
+    if err != nil {
+        return nil, err
+    }
+
     config := &tls.Config{
-        RootCAs: certPool,
+        Certificates: []tls.Certificate{clientCert},
+        RootCAs:      certPool,
     }
     return credentials.NewTLS(config), nil
 }

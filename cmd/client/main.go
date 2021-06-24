@@ -1,8 +1,11 @@
 package main
 
 import (
+    "crypto/tls"
+    "crypto/x509"
     "flag"
     "fmt"
+    "io/ioutil"
     "log"
     "strings"
     "time"
@@ -11,6 +14,7 @@ import (
     "github.com/xiusl/pcbook/pb"
     "github.com/xiusl/pcbook/sample"
     "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials"
 )
 
 func testCreateLaptop(laptopClient *client.LaptopClient) {
@@ -71,7 +75,7 @@ func testRatingLaptop(laptopClient *client.LaptopClient) {
 }
 
 const (
-    username        = "user1"
+    username        = "admin"
     password        = "abc"
     refreshDuration = 30 * time.Second
 )
@@ -85,12 +89,33 @@ func authMethods() map[string]bool {
     }
 }
 
+func loadTLSCredentials() (credentials.TransportCredentials, error) {
+    pemServerCA, err := ioutil.ReadFile("cert/ca-cert.pem")
+    if err != nil {
+        return nil, err
+    }
+    certPool := x509.NewCertPool()
+    if !certPool.AppendCertsFromPEM(pemServerCA) {
+        return nil, fmt.Errorf("cannot load the server ca file")
+    }
+
+    config := &tls.Config{
+        RootCAs: certPool,
+    }
+    return credentials.NewTLS(config), nil
+}
+
 func main() {
     addr := flag.String("addr", "", "the server address")
     flag.Parse()
     log.Printf("dial server: %s", *addr)
 
-    conn, err := grpc.Dial(*addr, grpc.WithInsecure())
+    tlsCredentials, err := loadTLSCredentials()
+    if err != nil {
+        log.Fatalf("cannot load  TLS credentials: %v", err)
+    }
+
+    conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(tlsCredentials))
     if err != nil {
         log.Fatalf("cannot dial server: %v", err)
     }
@@ -103,7 +128,7 @@ func main() {
 
     conn1, err := grpc.Dial(
         *addr,
-        grpc.WithInsecure(),
+        grpc.WithTransportCredentials(tlsCredentials),
         grpc.WithUnaryInterceptor(interceptor.Unary()),
         grpc.WithStreamInterceptor(interceptor.Stream()),
     )

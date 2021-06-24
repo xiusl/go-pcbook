@@ -8,5 +8,7 @@ client:
 	go run cmd/client/main.go -addr="0.0.0.0:8080"
 test:
 	go test -cover -race ./...
+cert:
+	cd cert; bash ./gen.sh; cd ..
 
-.PHONY: gen clean server client test
+.PHONY: gen clean server client test cert

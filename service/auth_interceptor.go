@@ -57,7 +57,6 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 
 func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) error {
     accessibleRoles, ok := interceptor.accessibleRoles[method]
-    log.Println("accessibleRoles: ", accessibleRoles)
     if !ok {
         return nil
     }

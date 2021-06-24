@@ -1,5 +1,5 @@
 gen:
-	protoc --proto_path=proto proto/*.proto --go_out=plugins=grpc:.
+	protoc --proto_path=proto proto/*.proto --go_out=plugins=grpc:. --grpc-gateway_out=. --openapiv2_out=:swagger
 clean:
 	rm pb/*.go
 server:

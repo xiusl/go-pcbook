@@ -10,7 +10,7 @@ server:
 server-tls:
 	go run cmd/server/main.go -port 8080 -tls true
 
-reset:
+rest:
 	go run cmd/server/main.go -port 8081 -type rest -endpoint 0.0.0.0:8080
 
 client:
@@ -25,4 +25,4 @@ test:
 cert:
 	cd cert; bash ./gen.sh; cd ..
 
-.PHONY: gen clean server client test cert reset
+.PHONY: gen clean server client test cert rest

@@ -115,18 +115,20 @@ func runRESTServer(
     jwtManager *service.JWTManager,
     enableTLS bool,
     listener net.Listener,
+    grpcEndpoints string,
 ) error {
     mux := runtime.NewServeMux()
+    dialOptions := []grpc.DialOption{grpc.WithInsecure()}
 
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()
 
-    err := pb.RegisterAuthServiceHandlerServer(ctx, mux, authServer)
+    err := pb.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, grpcEndpoints, dialOptions)
     if err != nil {
         return err
     }
 
-    err = pb.RegisterLaptopServicesHandlerServer(ctx, mux, laptopServer)
+    err = pb.RegisterLaptopServicesHandlerFromEndpoint(ctx, mux, grpcEndpoints, dialOptions)
     if err != nil {
         return err
     }
@@ -142,8 +144,10 @@ func runRESTServer(
 
 func main() {
     port := flag.String("port", "", "server port")
+    enableTLS := flag.Bool("tls", false, "enable SSL/TLS")
+    serverType := flag.String("type", "grpc", "type of server (grpc/rest)")
+    endPoint := flag.String("endpoint", "", "gRPC endpoint")
     flag.Parse()
-    log.Printf("start server on port: %s", *port)
 
     userStore := service.NewInMemoryUserStore()
     if err := seedUser(userStore); err != nil {
@@ -164,13 +168,13 @@ func main() {
         log.Fatalf("cannot start server: %v", err)
     }
 
-    // err = runGRPCServer(authServer, laptopServer, jwtManager, true, listener)
-    // if err != nil {
-    //     log.Fatalf("cannot run RPC server: %v", err)
-    // }
+    if *serverType == "grpc" {
+        err = runGRPCServer(authServer, laptopServer, jwtManager, *enableTLS, listener)
+    } else {
+        err = runRESTServer(authServer, laptopServer, jwtManager, *enableTLS, listener, *endPoint)
+    }
 
-    err = runRESTServer(authServer, laptopServer, jwtManager, false, listener)
     if err != nil {
-        log.Fatalf("cannot run REST server: %v", err)
+        log.Fatalf("cannot run start server: %v", err)
     }
 }

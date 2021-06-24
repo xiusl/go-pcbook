@@ -35,7 +35,7 @@ func createUser(userStroe service.UserStore, username, password, role string) er
 }
 
 func accessibleRoles() map[string][]string {
-    const latopServicePath = "/xiusl.pcbook.LaptopService/"
+    const latopServicePath = "/xiusl.pcbook.LaptopServices/"
     return map[string][]string{
         latopServicePath + "CreateLaptop": {"admin"},
         latopServicePath + "UploadImage":  {"admin"},

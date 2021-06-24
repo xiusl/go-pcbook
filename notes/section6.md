@@ -374,3 +374,6 @@ func main() {
 - 简单测试
 
   修改 `cmd/client/main.go` 的 username 和 password，当 username = admin 并密码正确的情况，运行无误，其它情况会返回错误
+
+
+**--本节结束--**

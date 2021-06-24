@@ -48,13 +48,13 @@ func accessibleRoles() map[string][]string {
 }
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
-    pemServerCA, err := ioutil.ReadFile("cert/ca-cert.pem")
+    pemClientCA, err := ioutil.ReadFile("cert/ca-cert.pem")
     if err != nil {
         return nil, err
     }
     certPool := x509.NewCertPool()
-    if !certPool.AppendCertsFromPEM(pemServerCA) {
-        return nil, fmt.Errorf("cannot load the server ca file")
+    if !certPool.AppendCertsFromPEM(pemClientCA) {
+        return nil, fmt.Errorf("cannot load the client ca file")
     }
 
     serverCert, err := tls.LoadX509KeyPair("cert/server-cert.pem", "cert/server-key.pem")
